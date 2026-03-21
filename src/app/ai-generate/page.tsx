@@ -11,7 +11,6 @@ export default function AiGeneratePage() {
   const [resolution, setResolution] = useState('high');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [taskId, setTaskId] = useState<string | null>(null);
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'generating' | 'success' | 'failed'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -23,48 +22,6 @@ export default function AiGeneratePage() {
       setPrompt(promptParam);
     }
   }, []);
-
-  // 轮询任务状态
-  useEffect(() => {
-    let pollingInterval: NodeJS.Timeout;
-
-    const pollTaskStatus = async () => {
-      if (taskId && generationStatus === 'generating') {
-        try {
-          const response = await fetch(`/api/ai-generate?task_id=${taskId}`);
-          const data = await response.json();
-
-          if (data.status === 'success') {
-            setGeneratedImage(data.imageUrl);
-            setGenerationStatus('success');
-            setIsGenerating(false);
-          } else if (data.status === 'failed') {
-            setErrorMessage('生成失败，请重试');
-            setGenerationStatus('failed');
-            setIsGenerating(false);
-          }
-          // 如果仍然是pending，继续轮询
-        } catch (error) {
-          setErrorMessage('轮询失败，请刷新页面重试');
-          setGenerationStatus('failed');
-          setIsGenerating(false);
-        }
-      }
-    };
-
-    if (taskId && generationStatus === 'generating') {
-      // 立即检查一次
-      pollTaskStatus();
-      // 然后每3秒检查一次
-      pollingInterval = setInterval(pollTaskStatus, 3000);
-    }
-
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-    };
-  }, [taskId, generationStatus]);
 
   // 风格模板选项
   const styleTemplates = [
@@ -128,14 +85,15 @@ export default function AiGeneratePage() {
 
       const data = await response.json();
 
-      if (data.task_id) {
-        setTaskId(data.task_id);
-        // 轮询逻辑会在useEffect中处理
+      if (data.status === 'success' && data.imageUrl) {
+        setGeneratedImage(data.imageUrl);
+        setGenerationStatus('success');
+        setIsGenerating(false);
       } else {
-        throw new Error('生成失败');
+        throw new Error(data.error || '生成失败');
       }
     } catch (error) {
-      setErrorMessage('生成失败，请重试');
+      setErrorMessage(error instanceof Error ? error.message : '生成失败，请重试');
       setGenerationStatus('failed');
       setIsGenerating(false);
     }

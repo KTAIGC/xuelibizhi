@@ -1,49 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 模拟智谱API响应
-const mockZhipuApiResponse = {
-  task_id: 'task_' + Date.now(),
-  status: 'pending',
-  data: {
-    images: [
-      {
-        url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=placeholder&image_size=portrait_4_3'
-      }
-    ]
-  }
-};
+// 智谱AI API配置
+const ZHIPU_API_KEY = process.env.ZHIPU_API_KEY || '5d7d37c4272b4d07b8f0a2a7a042b4b8.xUpCo3WdlrGXfbng';
+console.log('使用的API Key:', ZHIPU_API_KEY);
+const ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/images/generations';
 
-// 模拟轮询响应
-const mockPollingResponse = (taskId: string, attempts: number) => {
-  if (attempts < 3) {
-    return {
-      task_id: taskId,
-      status: 'pending',
-      data: {
-        images: [
-          {
-            url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=placeholder&image_size=portrait_4_3'
-          }
-        ]
-      }
-    };
-  } else {
-    return {
-      task_id: taskId,
-      status: 'success',
-      data: {
-        images: [
-          {
-            url: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=' + encodeURIComponent('beautiful landscape with mountains and lake') + '&image_size=portrait_4_3'
-          }
-        ]
-      }
-    };
-  }
+// 映射画面比例到尺寸
+const aspectRatioToSize = {
+  '9:16': '1088x1472',
+  '16:9': '1472x1088',
+  '1:1': '1280x1280'
 };
-
-// 存储任务状态
-const taskStore = new Map<string, { status: string; imageUrl: string; attempts: number }>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,53 +20,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '请提供提示词' }, { status: 400 });
     }
 
-    // 模拟调用智谱API
-    const response = mockZhipuApiResponse;
-    
-    // 存储任务状态
-    taskStore.set(response.task_id, {
-      status: 'pending',
-      imageUrl: response.data.images[0].url,
-      attempts: 0
-    });
-
-    return NextResponse.json({
-      task_id: response.task_id,
-      status: response.status,
-      imageUrl: response.data.images[0].url
-    });
-  } catch (error) {
-    return NextResponse.json({ error: '生成失败' }, { status: 500 });
-  }
-}
-
-export async function GET(request: NextRequest) {
-  try {
-    const taskId = request.nextUrl.searchParams.get('task_id');
-    if (!taskId) {
-      return NextResponse.json({ error: '缺少task_id' }, { status: 400 });
+    // 检查API Key
+    if (!ZHIPU_API_KEY) {
+      return NextResponse.json({ error: 'API Key未配置' }, { status: 500 });
     }
 
-    const task = taskStore.get(taskId);
-    if (!task) {
-      return NextResponse.json({ error: '任务不存在' }, { status: 404 });
+    console.log('调用智谱AI API，提示词:', prompt);
+    console.log('API Key长度:', ZHIPU_API_KEY.length);
+
+    // 调用智谱AI API
+    const response = await fetch(ZHIPU_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${ZHIPU_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'glm-image',
+        prompt: prompt,
+        size: aspectRatioToSize[aspectRatio as keyof typeof aspectRatioToSize] || '1280×1280',
+        quality: resolution === 'high' || resolution === 'ultra' ? 'hd' : 'standard',
+        watermark_enabled: true
+      })
+    });
+
+    console.log('API响应状态:', response.status);
+    
+    if (!response.ok) {
+      let errorMessage = 'API调用失败';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch (e) {
+        console.error('解析错误响应失败:', e);
+      }
+      console.error('API错误:', errorMessage);
+      return NextResponse.json({ error: errorMessage }, { status: response.status });
     }
 
-    // 模拟轮询
-    task.attempts++;
-    const pollingResponse = mockPollingResponse(taskId, task.attempts);
-    
-    // 更新任务状态
-    task.status = pollingResponse.status;
-    task.imageUrl = pollingResponse.data.images[0].url;
-    taskStore.set(taskId, task);
+    const data = await response.json();
+    console.log('API响应数据:', data);
 
+    // 返回生成的图像URL
     return NextResponse.json({
-      task_id: pollingResponse.task_id,
-      status: pollingResponse.status,
-      imageUrl: pollingResponse.data.images[0].url
+      status: 'success',
+      imageUrl: data.data[0].url
     });
   } catch (error) {
-    return NextResponse.json({ error: '轮询失败' }, { status: 500 });
+    console.error('生成失败:', error);
+    return NextResponse.json({ error: '生成失败，请重试' }, { status: 500 });
   }
 }
