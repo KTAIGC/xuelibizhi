@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               Int               @id @default(autoincrement())
+  email            String            @unique
+  password         String
+  name             String?
+  avatar           String?
+  isMember         Boolean           @default(false)
+  membershipLevel  Int               @default(0)
+  dailyDownloads   Int               @default(0)
+  dailyGenerations Int               @default(0)
+  dailyRepairs     Int               @default(0)
+  lastResetDate    DateTime          @default(now())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  orders           Order[]
+  wallpapers       Wallpaper[]
+  uploads          WallpaperUpload[]
+  downloads        Download[]
+  aiGenerations    AiGeneration[]
+  imageRepairs     ImageRepair[]
+  membership       Membership?
+}
+
+model GuestUsageLog {
+  id               Int      @id @default(autoincrement())
+  deviceFingerprint String
+  ipAddress        String
+  dailyDownloads   Int      @default(0)
+  dailyGenerations Int      @default(0)
+  dailyRepairs     Int      @default(0)
+  lastResetDate    DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Membership {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @unique
+  planId          Int
+  startDate       DateTime @default(now())
+  endDate         DateTime
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            Plan     @relation(fields: [planId], references: [id])
+}
+
+model Plan {
+  id               Int          @id @default(autoincrement())
+  name             String
+  price            Decimal
+  originalPrice    Decimal
+  duration         Int          // in days
+  dailyDownloads   Int
+  dailyGenerations Int
+  dailyRepairs     Int
+  isFeatured       Boolean      @default(false)
+  isPopular        Boolean      @default(false)
+  description      String
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  memberships      Membership[]
+  orders           Order[]
+}
+
+model Order {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  planId         Int
+  amount         Decimal
+  status         String   @default("pending")
+  paymentMethod  String
+  transactionId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan           Plan     @relation(fields: [planId], references: [id])
+}
+
+model Wallpaper {
+  id            Int               @id @default(autoincrement())
+  title         String
+  description   String?
+  imageUrl      String
+  thumbnailUrl  String
+  categoryId    Int
+  userId        Int?
+  tags          String
+  isPublic      Boolean           @default(true)
+  isApproved    Boolean           @default(false)
+  viewCount     Int               @default(0)
+  downloadCount Int               @default(0)
+  aspectRatio   String            @default("9:16")
+  resolution    String
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  user          User?             @relation(fields: [userId], references: [id])
+  category      WallpaperCategory @relation(fields: [categoryId], references: [id])
+  downloads     Download[]
+  galleryItems  GalleryItem[]
+  uploads       WallpaperUpload[]
+}
+
+model WallpaperCategory {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  slug      String     @unique
+  coverImage String
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  wallpapers Wallpaper[]
+}
+
+model WallpaperTag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WallpaperUpload {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  wallpaperId Int
+  status     String   @default("pending")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallpaper  Wallpaper @relation(fields: [wallpaperId], references: [id], onDelete: Cascade)
+}
+
+model Download {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  wallpaperId Int
+  ipAddress   String
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id])
+  wallpaper   Wallpaper @relation(fields: [wallpaperId], references: [id], onDelete: Cascade)
+}
+
+model AiGeneration {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  prompt      String
+  style       String
+  aspectRatio String
+  imageUrl    String
+  status      String   @default("completed")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User?    @relation(fields: [userId], references: [id])
+  galleryItems GalleryItem[]
+}
+
+model GalleryItem {
+  id           Int          @id @default(autoincrement())
+  wallpaperId  Int?
+  aiGenerationId Int?
+  prompt       String?
+  isFeatured   Boolean      @default(false)
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  wallpaper    Wallpaper?   @relation(fields: [wallpaperId], references: [id], onDelete: Cascade)
+  aiGeneration AiGeneration? @relation(fields: [aiGenerationId], references: [id], onDelete: Cascade)
+}
+
+model ImageRepair {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  originalUrl String
+  repairedUrl String
+  status      String   @default("completed")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model SiteSetting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Banner {
+  id          Int      @id @default(autoincrement())
+  title       String
+  imageUrl    String
+  link        String
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AdminUser {
+  id        Int            @id @default(autoincrement())
+  email     String         @unique
+  password  String
+  name      String
+  role      String         @default("admin")
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  operations OperationLog[]
+}
+
+model OperationLog {
+  id        Int      @id @default(autoincrement())
+  adminId   Int
+  action    String
+  target    String
+  details   String?
+  createdAt DateTime @default(now())
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+}
