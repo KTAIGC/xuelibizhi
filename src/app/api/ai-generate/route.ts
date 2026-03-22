@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { uploadImageToOSS, base64ToBuffer } from '@/lib/oss';
 
 // wenwen-ai API配置
 const WENWEN_API_KEY = process.env.WENWEN_API_KEY || 'sk-HmKdFirvdUaKuQe0QuUwpwNGiWj5Mfmg001WwT4xQykci0pO';
@@ -136,9 +137,20 @@ export async function POST(request: NextRequest) {
                 console.log('API返回了图片数据:', part.inlineData.mimeType);
                 // 这里就是图片，Base64
                 const base64Data = part.inlineData.data;
-                // 创建Data URL
-                imageUrl = `data:${part.inlineData.mimeType};base64,${base64Data}`;
-                console.log('生成的Data URL:', imageUrl.substring(0, 100) + '...');
+                
+                try {
+                  // 将Base64数据转换为Buffer
+                  const buffer = Buffer.from(base64Data, 'base64');
+                  // 上传到OSS
+                  const filename = `ai-generated-${Date.now()}.jpg`;
+                  imageUrl = await uploadImageToOSS(buffer, filename);
+                  console.log('图片已上传到OSS:', imageUrl);
+                } catch (error) {
+                  console.error('OSS上传失败:', error);
+                  // 如果OSS上传失败，使用Data URL作为备用
+                  imageUrl = `data:${part.inlineData.mimeType};base64,${base64Data}`;
+                  console.log('使用Data URL作为备用:', imageUrl.substring(0, 100) + '...');
+                }
               } else if (part.image) {
                 // 检查是否有生成的图片
                 imageUrl = part.image.url;
