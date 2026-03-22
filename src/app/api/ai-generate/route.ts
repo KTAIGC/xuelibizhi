@@ -1,23 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OSS from 'ali-oss';
 
 // wenwen-ai API配置
 const WENWEN_API_KEY = process.env.WENWEN_API_KEY || 'sk-HmKdFirvdUaKuQe0QuUwpwNGiWj5Mfmg001WwT4xQykci0pO';
 const WENWEN_API_BASE_URL = 'https://breakout.wenwen-ai.com/v1beta/models/';
-
-// 阿里云OSS配置
-const OSS_ACCESS_KEY_ID = process.env.OSS_ACCESS_KEY_ID || 'your-oss-access-key';
-const OSS_ACCESS_KEY_SECRET = process.env.OSS_ACCESS_KEY_SECRET || 'your-oss-secret';
-const OSS_BUCKET_NAME = process.env.OSS_BUCKET_NAME || 'your-bucket-name';
-const OSS_REGION = process.env.OSS_REGION || 'oss-cn-hangzhou';
-
-// 创建OSS客户端
-const ossClient = new OSS({
-  region: OSS_REGION,
-  accessKeyId: OSS_ACCESS_KEY_ID,
-  accessKeySecret: OSS_ACCESS_KEY_SECRET,
-  bucket: OSS_BUCKET_NAME,
-});
 
 // 支持的模型列表
 const supportedModels = {
@@ -32,34 +17,6 @@ const aspectRatioToSize = {
   '1:1': { width: 1280, height: 1280 }
 };
 
-// 上传图片到阿里云OSS
-async function uploadImageToOSS(imageUrl: string, description: string): Promise<string> {
-  try {
-    console.log('开始下载图片:', imageUrl);
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`下载图片失败: ${response.status}`);
-    }
-    
-    const buffer = await response.arrayBuffer();
-    console.log('图片下载成功，大小:', buffer.byteLength);
-    
-    // 生成唯一的文件名
-    const fileName = `ai-generated/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
-    console.log('生成的文件名:', fileName);
-    
-    // 上传到OSS
-    const result = await ossClient.put(fileName, Buffer.from(buffer));
-    console.log('上传到OSS成功:', result.url);
-    
-    return result.url;
-  } catch (error) {
-    console.error('上传图片到OSS失败:', error);
-    // 如果上传失败，返回原始图片URL
-    return imageUrl;
-  }
-}
-
 export async function POST(request: NextRequest) {
   try {
     const { prompt, style, aspectRatio, resolution, model } = await request.json();
@@ -67,6 +24,8 @@ export async function POST(request: NextRequest) {
     if (!prompt) {
       return NextResponse.json({ error: '请提供提示词' }, { status: 400 });
     }
+
+    console.log('前端请求参数:', { prompt, style, aspectRatio, resolution, model });
 
     // 确定使用的模型
     const selectedModel = model || 'gemini-2.5-flash-image';
@@ -102,7 +61,6 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('API请求URL:', WENWEN_API_URL);
-    console.log('API请求体:', requestBody);
     
     // 调用wenwen-ai API
     let response;
@@ -120,7 +78,6 @@ export async function POST(request: NextRequest) {
       });
 
       console.log('API响应状态:', response.status);
-      console.log('API响应头:', response.headers);
       
       if (response.ok) {
         data = await response.json();
@@ -184,7 +141,7 @@ export async function POST(request: NextRequest) {
         
         // 基于描述生成图像URL
         // 使用不需要API密钥的公共图片生成服务
-        let finalImageUrl = `https://source.unsplash.com/random/1080x1920/?${encodeURIComponent(description)}`;
+        let finalImageUrl = `https://picsum.photos/1080/1920`;
         
         console.log('生成的图片URL:', finalImageUrl);
         
@@ -195,23 +152,21 @@ export async function POST(request: NextRequest) {
           if (!imageResponse.ok) {
             console.warn('图片URL可能无法访问:', finalImageUrl);
             // 如果第一个服务失败，使用备用服务
-            finalImageUrl = `https://picsum.photos/1080/1920`;
+            finalImageUrl = `https://source.unsplash.com/random/1080x1920`;
             console.log('使用备用图片URL:', finalImageUrl);
           }
         } catch (error) {
           console.warn('验证图片URL时出错:', error);
           // 如果出错，使用备用服务
-          finalImageUrl = `https://picsum.photos/1080/1920`;
+          finalImageUrl = `https://source.unsplash.com/random/1080x1920`;
           console.log('使用备用图片URL:', finalImageUrl);
         }
         
-        // 上传图片到阿里云OSS
-        const ossImageUrl = await uploadImageToOSS(finalImageUrl, description);
-        console.log('最终图片URL:', ossImageUrl);
+        console.log('最终图片URL:', finalImageUrl);
         
         return NextResponse.json({
           status: 'success',
-          imageUrl: ossImageUrl
+          imageUrl: finalImageUrl
         });
       } else {
         throw new Error('API响应结构不符合预期');
