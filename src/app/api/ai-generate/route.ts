@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // wenwen-ai API配置
-const WENWEN_API_KEY = 'sk-qv4RnPoNqN5aV8suyeDaLtEScG1juspHWMXgQXfvxHp5fzm1';
+const WENWEN_API_KEY = 'sk-HmKdFirvdUaKuQe0QuUwpwNGiWj5Mfmg001WwT4xQykci0pO';
 const WENWEN_API_BASE_URL = 'https://breakout.wenwen-ai.com/v1beta/models/';
 
 // 支持的模型列表
 const supportedModels = {
   'gemini-2.5-flash-image': 'gemini-2.5-flash-image:generateContent',
-  'gemini-3-pro-image-preview': 'gemini-3-pro-image-preview:generateContent',
-  'midjourney': 'mj/submit/imagine'
+  'gemini-3-pro-image-preview': 'gemini-3-pro-image-preview:generateContent'
 };
 
 // 映射画面比例到尺寸
@@ -33,13 +32,8 @@ export async function POST(request: NextRequest) {
     }
 
     const modelEndpoint = supportedModels[selectedModel as keyof typeof supportedModels];
-    // 根据模型类型使用不同的API基础URL
-    let WENWEN_API_URL;
-    if (selectedModel === 'midjourney') {
-      WENWEN_API_URL = `https://breakout.wenwen-ai.com/${modelEndpoint}`;
-    } else {
-      WENWEN_API_URL = `${WENWEN_API_BASE_URL}${modelEndpoint}`;
-    }
+    // 构建API URL
+    const WENWEN_API_URL = `${WENWEN_API_BASE_URL}${modelEndpoint}`;
 
     console.log('调用wenwen-ai API，提示词:', prompt);
     console.log('使用模型:', selectedModel);
@@ -47,82 +41,114 @@ export async function POST(request: NextRequest) {
     // 确定尺寸
     const size = aspectRatioToSize[aspectRatio as keyof typeof aspectRatioToSize] || aspectRatioToSize['1:1'];
 
-    // 根据模型类型构建不同的请求体
-    let requestBody;
-    if (selectedModel === 'midjourney') {
-      // Midjourney API请求格式
-      requestBody = JSON.stringify({
-        prompt: `高清壁纸，${prompt}，风格：${style}，尺寸：${size.width}x${size.height}`,
-        size: `${size.width}x${size.height}`
-      });
-    } else {
-      // Gemini API请求格式
-      requestBody = JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: `描述一张高清壁纸，提示词：${prompt}，风格：${style}，尺寸：${size.width}x${size.height}。请提供详细的描述，以便用于生成图像。`
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1024
+    // 构建Gemini API请求体
+    const requestBody = JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: `描述一张高清壁纸，提示词：${prompt}，风格：${style}，尺寸：${size.width}x${size.height}。请提供详细的描述，以便用于生成图像。`
+            }
+          ]
         }
-      });
-    }
-
-    // 调用wenwen-ai API
-    const response = await fetch(WENWEN_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${WENWEN_API_KEY}`
-      },
-      body: requestBody
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024
+      }
     });
 
-    console.log('API响应状态:', response.status);
+    console.log('API请求URL:', WENWEN_API_URL);
+    console.log('API请求体:', requestBody);
     
-    if (!response.ok) {
-      let errorMessage = 'API调用失败';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error?.message || errorMessage;
-      } catch (e) {
-        console.error('解析错误响应失败:', e);
+    // 调用wenwen-ai API
+    let response;
+    let data;
+    let apiSuccess = false;
+    
+    try {
+      response = await fetch(WENWEN_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${WENWEN_API_KEY}`
+        },
+        body: requestBody
+      });
+
+      console.log('API响应状态:', response.status);
+      console.log('API响应头:', response.headers);
+      
+      if (response.ok) {
+        data = await response.json();
+        console.log('API响应数据:', data);
+        apiSuccess = true;
+      } else {
+        let errorMessage = 'API调用失败';
+        try {
+          const errorData = await response.json();
+          console.log('API错误响应:', errorData);
+          errorMessage = errorData.error?.message || errorData.message || errorMessage;
+        } catch (e) {
+          console.error('解析错误响应失败:', e);
+          // 尝试获取原始响应文本
+          try {
+            const errorText = await response.text();
+            console.log('API错误响应文本:', errorText);
+            errorMessage = errorText;
+          } catch (e2) {
+            console.error('获取错误响应文本失败:', e2);
+          }
+        }
+        console.error('API错误:', errorMessage);
+        return NextResponse.json({ error: errorMessage }, { status: response.status });
       }
-      console.error('API错误:', errorMessage);
-      return NextResponse.json({ error: errorMessage }, { status: response.status });
+    } catch (error) {
+      console.error('API调用异常:', error);
+      return NextResponse.json({ error: 'API调用异常' }, { status: 500 });
     }
 
-    const data = await response.json();
-    console.log('API响应数据:', data);
-
     // 处理Gemini API响应
-    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-      // 提取所有文本部分
-      let description = prompt;
-      for (const part of data.candidates[0].content.parts) {
-        if (part.text) {
-          description = part.text;
-          break;
+    if (apiSuccess) {
+      if (data.candidates && data.candidates[0]) {
+        // 提取文本部分，处理不同的响应结构
+        let description = prompt;
+        
+        // 检查content是否存在
+        if (data.candidates[0].content) {
+          // 尝试从parts中获取文本
+          if (data.candidates[0].content.parts) {
+            for (const part of data.candidates[0].content.parts) {
+              if (part.text) {
+                description = part.text;
+                break;
+              }
+            }
+          } 
+          // 直接从content中获取文本（如果parts不存在）
+          else if (data.candidates[0].content.text) {
+            description = data.candidates[0].content.text;
+          }
+          // 其他content结构
+          else {
+            console.log('其他content结构:', data.candidates[0].content);
+          }
+        } else {
+          console.log('无content字段:', data.candidates[0]);
         }
+        
+        console.log('Gemini生成的描述:', description);
+        
+        // 基于描述生成图像URL
+        const imageUrl = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(description)}&image_size=portrait_4_3`;
+        
+        return NextResponse.json({
+          status: 'success',
+          imageUrl: imageUrl
+        });
+      } else {
+        throw new Error('API响应结构不符合预期');
       }
-      
-      console.log('Gemini生成的描述:', description);
-      
-      // 基于描述生成图像URL
-      const imageUrl = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(description)}&image_size=portrait_4_3`;
-      
-      return NextResponse.json({
-        status: 'success',
-        imageUrl: imageUrl
-      });
-    } else {
-      throw new Error('API响应结构不符合预期');
     }
   } catch (error) {
     console.error('生成失败:', error);

@@ -33,7 +33,7 @@ export default function Navbar() {
           <Link href="/gallery" className="text-gray-700 hover:text-pink-500 transition-colors">图片广场</Link>
           <Link href="/ai-generate" className="text-gray-700 hover:text-pink-500 transition-colors">AI生成</Link>
           <Link href="/upload" className="text-gray-700 hover:text-pink-500 transition-colors">上传壁纸</Link>
-          <Link href="/membership" className="text-gray-700 hover:text-pink-500 transition-colors">会员中心</Link>
+          <Link href="/recharge" className="text-gray-700 hover:text-pink-500 transition-colors">充值中心</Link>
           <Link href="/auth" className="bg-pink-500 text-white px-4 py-2 rounded-full hover:bg-pink-600 transition-colors">
             登录/注册
           </Link>
@@ -63,7 +63,7 @@ export default function Navbar() {
             <Link href="/gallery" className="text-gray-700 hover:text-pink-500 transition-colors py-2">图片广场</Link>
             <Link href="/ai-generate" className="text-gray-700 hover:text-pink-500 transition-colors py-2">AI生成</Link>
             <Link href="/upload" className="text-gray-700 hover:text-pink-500 transition-colors py-2">上传壁纸</Link>
-            <Link href="/membership" className="text-gray-700 hover:text-pink-500 transition-colors py-2">会员中心</Link>
+            <Link href="/recharge" className="text-gray-700 hover:text-pink-500 transition-colors py-2">充值中心</Link>
             <Link href="/auth" className="bg-pink-500 text-white px-4 py-2 rounded-full hover:bg-pink-600 transition-colors text-center">
               登录/注册
             </Link>

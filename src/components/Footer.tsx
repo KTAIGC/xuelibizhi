@@ -25,14 +25,14 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* 会员服务 */}
+          {/* 充值服务 */}
           <div>
-            <h4 className="font-semibold text-gray-700 mb-4">会员服务</h4>
+            <h4 className="font-semibold text-gray-700 mb-4">充值服务</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/membership" className="text-gray-600 hover:text-pink-500 transition-colors">会员中心</Link></li>
-              <li><Link href="/membership" className="text-gray-600 hover:text-pink-500 transition-colors">会员套餐</Link></li>
-              <li><Link href="/membership" className="text-gray-600 hover:text-pink-500 transition-colors">充值记录</Link></li>
-              <li><Link href="/membership" className="text-gray-600 hover:text-pink-500 transition-colors">下载记录</Link></li>
+              <li><Link href="/recharge" className="text-gray-600 hover:text-pink-500 transition-colors">充值中心</Link></li>
+              <li><Link href="/recharge" className="text-gray-600 hover:text-pink-500 transition-colors">充值档位</Link></li>
+              <li><Link href="/recharge" className="text-gray-600 hover:text-pink-500 transition-colors">积分规则</Link></li>
+              <li><Link href="/recharge" className="text-gray-600 hover:text-pink-500 transition-colors">首充福利</Link></li>
             </ul>
           </div>
 
