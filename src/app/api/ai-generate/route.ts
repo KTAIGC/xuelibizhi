@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
+import OSS from 'ali-oss';
 
 // wenwen-ai API配置
 const WENWEN_API_KEY = process.env.WENWEN_API_KEY || 'sk-HmKdFirvdUaKuQe0QuUwpwNGiWj5Mfmg001WwT4xQykci0pO';
 const WENWEN_API_BASE_URL = 'https://breakout.wenwen-ai.com/v1beta/models/';
+
+// 阿里云OSS配置
+const OSS_ACCESS_KEY_ID = process.env.OSS_ACCESS_KEY_ID || 'your-oss-access-key';
+const OSS_ACCESS_KEY_SECRET = process.env.OSS_ACCESS_KEY_SECRET || 'your-oss-secret';
+const OSS_BUCKET_NAME = process.env.OSS_BUCKET_NAME || 'your-bucket-name';
+const OSS_REGION = process.env.OSS_REGION || 'oss-cn-hangzhou';
+
+// 创建OSS客户端
+const ossClient = new OSS({
+  region: OSS_REGION,
+  accessKeyId: OSS_ACCESS_KEY_ID,
+  accessKeySecret: OSS_ACCESS_KEY_SECRET,
+  bucket: OSS_BUCKET_NAME,
+});
 
 // 支持的模型列表
 const supportedModels = {
@@ -16,6 +31,34 @@ const aspectRatioToSize = {
   '16:9': { width: 1920, height: 1080 },
   '1:1': { width: 1280, height: 1280 }
 };
+
+// 上传图片到阿里云OSS
+async function uploadImageToOSS(imageUrl: string, description: string): Promise<string> {
+  try {
+    console.log('开始下载图片:', imageUrl);
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`下载图片失败: ${response.status}`);
+    }
+    
+    const buffer = await response.arrayBuffer();
+    console.log('图片下载成功，大小:', buffer.byteLength);
+    
+    // 生成唯一的文件名
+    const fileName = `ai-generated/${Date.now()}-${Math.random().toString(36).substr(2, 9)}.jpg`;
+    console.log('生成的文件名:', fileName);
+    
+    // 上传到OSS
+    const result = await ossClient.put(fileName, Buffer.from(buffer));
+    console.log('上传到OSS成功:', result.url);
+    
+    return result.url;
+  } catch (error) {
+    console.error('上传图片到OSS失败:', error);
+    // 如果上传失败，返回原始图片URL
+    return imageUrl;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -162,9 +205,13 @@ export async function POST(request: NextRequest) {
           console.log('使用备用图片URL:', finalImageUrl);
         }
         
+        // 上传图片到阿里云OSS
+        const ossImageUrl = await uploadImageToOSS(finalImageUrl, description);
+        console.log('最终图片URL:', ossImageUrl);
+        
         return NextResponse.json({
           status: 'success',
-          imageUrl: finalImageUrl
+          imageUrl: ossImageUrl
         });
       } else {
         throw new Error('API响应结构不符合预期');
