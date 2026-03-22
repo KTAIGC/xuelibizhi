@@ -140,9 +140,8 @@ export async function POST(request: NextRequest) {
         console.log('Gemini生成的描述:', description);
         
         // 基于描述生成图像URL
-        // 使用不需要API密钥的公共图片生成服务
-        // 直接使用 Unsplash 随机图片服务，不需要验证
-        const finalImageUrl = `https://source.unsplash.com/random/1080x1920/?${encodeURIComponent(prompt)}`;
+        // 使用固定的图片URL来测试前端是否能够正确显示图片
+        const finalImageUrl = `https://picsum.photos/1080/1920`;
         
         console.log('生成的图片URL:', finalImageUrl);
         

@@ -280,12 +280,22 @@ export default function AiGeneratePage() {
                       className="w-full h-auto rounded-lg object-contain"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
+                        console.error('图片加载失败:', generatedImage);
                         target.src = 'https://via.placeholder.com/800x600?text=图片加载失败';
                         target.alt = '图片加载失败';
+                      }}
+                      onLoad={(e) => {
+                        console.log('图片加载成功:', generatedImage);
                       }}
                     />
                     <div className="absolute top-2 right-2 bg-white/80 px-2 py-1 rounded text-sm">
                       图片URL: {generatedImage.length > 50 ? generatedImage.substring(0, 50) + '...' : generatedImage}
+                    </div>
+                    <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+                      <h4 className="font-medium text-gray-700 mb-2">调试信息:</h4>
+                      <p className="text-sm text-gray-600">图片URL: {generatedImage}</p>
+                      <p className="text-sm text-gray-600">状态: {generationStatus}</p>
+                      <p className="text-sm text-gray-600">加载状态: <span id="image-load-status">等待加载</span></p>
                     </div>
                   </div>
                 </div>
