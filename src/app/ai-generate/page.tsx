@@ -9,6 +9,7 @@ export default function AiGeneratePage() {
   const [style, setStyle] = useState('default');
   const [aspectRatio, setAspectRatio] = useState('9:16');
   const [resolution, setResolution] = useState('high');
+  const [model, setModel] = useState('gemini-2.5-flash-image');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [generationStatus, setGenerationStatus] = useState<'idle' | 'generating' | 'success' | 'failed'>('idle');
@@ -43,11 +44,18 @@ export default function AiGeneratePage() {
   ];
 
   // 清晰度选项
-  const resolutionOptions = [
-    { value: 'low', label: '标准清晰度' },
-    { value: 'high', label: '高清' },
-    { value: 'ultra', label: '超高清' },
-  ];
+    const resolutionOptions = [
+      { value: 'low', label: '标准清晰度' },
+      { value: 'high', label: '高清' },
+      { value: 'ultra', label: '超高清' },
+    ];
+
+    // 模型选项
+    const modelOptions = [
+      { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image' },
+      { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro Image Preview' },
+      { value: 'midjourney', label: 'Midjourney' },
+    ];
 
   // 常用提示词模板
   const promptTemplates = [
@@ -80,6 +88,7 @@ export default function AiGeneratePage() {
           style,
           aspectRatio,
           resolution,
+          model,
         }),
       });
 
@@ -172,8 +181,8 @@ export default function AiGeneratePage() {
               </div>
             </div>
 
-            {/* 画面比例和清晰度 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* 画面比例、清晰度和模型选择 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div>
                 <label className="block text-gray-700 font-medium mb-2">画面比例</label>
                 <select
@@ -196,6 +205,20 @@ export default function AiGeneratePage() {
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
                 >
                   {resolutionOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">模型选择</label>
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                >
+                  {modelOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
