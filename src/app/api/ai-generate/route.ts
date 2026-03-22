@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadImageToOSS, base64ToBuffer } from '@/lib/oss';
+import { PrismaClient } from '@prisma/client';
+import { verifyToken } from '@/lib/auth';
+
+const prisma = new PrismaClient();
 
 // wenwen-ai API配置
 const WENWEN_API_KEY = process.env.WENWEN_API_KEY || 'sk-HmKdFirvdUaKuQe0QuUwpwNGiWj5Mfmg001WwT4xQykci0pO';
@@ -10,6 +14,109 @@ const supportedModels = {
   'gemini-2.5-flash-image': 'gemini-2.5-flash-image:generateContent',
   'gemini-3-pro-image-preview': 'gemini-3-pro-image-preview:generateContent'
 };
+
+// 定义使用限制
+const usageLimits = {
+  guest: {
+    dailyGenerations: 1,
+    allowedModels: ['gemini-2.5-flash-image']
+  },
+  free: {
+    dailyGenerations: 1,
+    allowedModels: ['gemini-2.5-flash-image']
+  },
+  member: {
+    dailyGenerations: 10, // 会员可以使用更多次数
+    allowedModels: ['gemini-2.5-flash-image', 'gemini-3-pro-image-preview']
+  }
+};
+
+/**
+ * 检查并更新用户的AI生图次数
+ * @param userId 用户ID（如果有）
+ * @param model 要使用的模型
+ * @returns 检查结果
+ */
+async function checkAndUpdateUsage(userId: number | null, model: string) {
+  // 检查模型是否支持
+  if (!supportedModels[model as keyof typeof supportedModels]) {
+    return { success: false, error: '不支持的模型' };
+  }
+
+  // 检查是否是游客
+  if (!userId) {
+    // 游客限制
+    if (!usageLimits.guest.allowedModels.includes(model)) {
+      return { success: false, error: '游客只能使用 gemini-2.5-flash 模型' };
+    }
+    
+    // 这里应该检查游客的使用次数，但由于没有用户ID，我们暂时跳过
+    // 实际生产环境中应该使用IP或设备指纹来跟踪游客使用次数
+    return { success: true };
+  }
+
+  // 检查注册用户
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    return { success: false, error: '用户不存在' };
+  }
+
+  // 检查日期是否需要重置
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const lastReset = new Date(user.lastResetDate);
+  lastReset.setHours(0, 0, 0, 0);
+
+  let dailyGenerations = user.dailyGenerations;
+  if (today > lastReset) {
+    // 重置使用次数
+    dailyGenerations = 0;
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        dailyGenerations: 0,
+        dailyDownloads: 0,
+        dailyRepairs: 0,
+        lastResetDate: new Date()
+      }
+    });
+  }
+
+  // 确定用户类型
+  const userType = user.isMember ? 'member' : 'free';
+  const limits = usageLimits[userType as keyof typeof usageLimits];
+
+  // 检查模型权限
+  if (!limits.allowedModels.includes(model)) {
+    return { success: false, error: '您的账户只能使用 gemini-2.5-flash 模型' };
+  }
+
+  // 检查使用次数
+  if (dailyGenerations >= limits.dailyGenerations) {
+    return { success: false, error: `您今日的AI生图次数已用完（限额：${limits.dailyGenerations}次）` };
+  }
+
+  // 更新使用次数
+  await prisma.user.update({
+    where: { id: userId },
+    data: { dailyGenerations: dailyGenerations + 1 }
+  });
+
+  return { success: true };
+}
+
+/**
+ * 从请求中获取用户ID
+ * @param request 请求对象
+ * @returns 用户ID或null
+ */
+function getUserIdFromRequest(request: NextRequest): number | null {
+  const token = request.cookies.get('token')?.value;
+  if (!token) return null;
+  
+  const decoded = verifyToken(token);
+  return decoded?.userId || null;
+}
 
 // 映射画面比例到尺寸
 const aspectRatioToSize = {
@@ -30,6 +137,16 @@ export async function POST(request: NextRequest) {
 
     // 确定使用的模型
     const selectedModel = model || 'gemini-2.5-flash-image';
+    
+    // 获取用户ID
+    const userId = getUserIdFromRequest(request);
+    
+    // 检查使用限制
+    const usageCheck = await checkAndUpdateUsage(userId, selectedModel);
+    if (!usageCheck.success) {
+      return NextResponse.json({ error: usageCheck.error }, { status: 403 });
+    }
+
     if (!supportedModels[selectedModel as keyof typeof supportedModels]) {
       return NextResponse.json({ error: '不支持的模型' }, { status: 400 });
     }
