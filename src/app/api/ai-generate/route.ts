@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // wenwen-ai API配置
-const WENWEN_API_KEY = 'sk-HmKdFirvdUaKuQe0QuUwpwNGiWj5Mfmg001WwT4xQykci0pO';
+const WENWEN_API_KEY = process.env.WENWEN_API_KEY || 'sk-HmKdFirvdUaKuQe0QuUwpwNGiWj5Mfmg001WwT4xQykci0pO';
 const WENWEN_API_BASE_URL = 'https://breakout.wenwen-ai.com/v1beta/models/';
 
 // 支持的模型列表

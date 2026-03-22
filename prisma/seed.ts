@@ -106,11 +106,16 @@ async function main() {
   ];
 
   for (const plan of plans) {
-    await prisma.plan.upsert({
+    // 先检查是否存在同名计划
+    const existingPlan = await prisma.plan.findFirst({
       where: { name: plan.name },
-      update: {},
-      create: plan,
     });
+    
+    if (!existingPlan) {
+      await prisma.plan.create({
+        data: plan,
+      });
+    }
   }
 
   console.log('Database seeded successfully!');

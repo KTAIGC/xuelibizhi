@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     // 模拟用户数据
     const mockUser = {
-      id: '1',
+      id: 1,
       email: email,
       name: '测试用户',
       isMember: false,

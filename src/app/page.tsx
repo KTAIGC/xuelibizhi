@@ -198,11 +198,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 会员套餐入口 */}
+      {/* 充值套餐入口 */}
       <section className="py-12 bg-gray-100">
         <div className="container mx-auto px-4">
           <div className="bg-white rounded-xl p-8 shadow-sm">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">会员特权</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">充值特权</h2>
             <p className="text-gray-600 mb-8 text-center">
               解锁更多下载次数、AI生成次数和专属高清资源
             </p>
@@ -211,7 +211,7 @@ export default function Home() {
                 <h3 className="font-semibold text-gray-800 mb-2">7天体验包</h3>
                 <p className="text-pink-500 font-bold text-xl mb-2">¥9.9</p>
                 <p className="text-gray-600 text-sm mb-4">原价 ¥19.9</p>
-                <Link href="/membership" className="text-pink-500 hover:text-pink-600 transition-colors font-medium text-sm">
+                <Link href="/recharge" className="text-pink-500 hover:text-pink-600 transition-colors font-medium text-sm">
                   立即购买
                 </Link>
               </div>
@@ -222,7 +222,7 @@ export default function Home() {
                 <h3 className="font-semibold text-gray-800 mb-2">季度包</h3>
                 <p className="text-pink-500 font-bold text-xl mb-2">¥39</p>
                 <p className="text-gray-600 text-sm mb-4">原价 ¥59</p>
-                <Link href="/membership" className="text-pink-500 hover:text-pink-600 transition-colors font-medium text-sm">
+                <Link href="/recharge" className="text-pink-500 hover:text-pink-600 transition-colors font-medium text-sm">
                   立即购买
                 </Link>
               </div>
@@ -230,7 +230,7 @@ export default function Home() {
                 <h3 className="font-semibold text-gray-800 mb-2">半年包</h3>
                 <p className="text-pink-500 font-bold text-xl mb-2">¥99</p>
                 <p className="text-gray-600 text-sm mb-4">原价 ¥159</p>
-                <Link href="/membership" className="text-pink-500 hover:text-pink-600 transition-colors font-medium text-sm">
+                <Link href="/recharge" className="text-pink-500 hover:text-pink-600 transition-colors font-medium text-sm">
                   立即购买
                 </Link>
               </div>
@@ -238,7 +238,7 @@ export default function Home() {
                 <h3 className="font-semibold text-gray-800 mb-2">年度包</h3>
                 <p className="text-pink-500 font-bold text-xl mb-2">¥199</p>
                 <p className="text-gray-600 text-sm mb-4">原价 ¥299</p>
-                <Link href="/membership" className="text-pink-500 hover:text-pink-600 transition-colors font-medium text-sm">
+                <Link href="/recharge" className="text-pink-500 hover:text-pink-600 transition-colors font-medium text-sm">
                   立即购买
                 </Link>
               </div>
