@@ -142,6 +142,19 @@ export async function POST(request: NextRequest) {
         // 基于描述生成图像URL
         const imageUrl = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(description)}&image_size=portrait_4_3`;
         
+        console.log('生成的图片URL:', imageUrl);
+        
+        // 验证图片URL是否可访问
+        try {
+          const imageResponse = await fetch(imageUrl, { method: 'HEAD' });
+          console.log('图片URL验证状态:', imageResponse.status);
+          if (!imageResponse.ok) {
+            console.warn('图片URL可能无法访问:', imageUrl);
+          }
+        } catch (error) {
+          console.warn('验证图片URL时出错:', error);
+        }
+        
         return NextResponse.json({
           status: 'success',
           imageUrl: imageUrl

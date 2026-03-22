@@ -273,11 +273,21 @@ export default function AiGeneratePage() {
               <h2 className="text-xl font-bold text-gray-800 mb-4">生成结果</h2>
               <div className="flex flex-col md:flex-row gap-6">
                 <div className="md:w-1/2">
-                  <img
-                    src={generatedImage}
-                    alt="Generated wallpaper"
-                    className="w-full h-auto rounded-lg object-contain"
-                  />
+                  <div className="relative">
+                    <img
+                      src={generatedImage}
+                      alt="Generated wallpaper"
+                      className="w-full h-auto rounded-lg object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = 'https://via.placeholder.com/800x600?text=图片加载失败';
+                        target.alt = '图片加载失败';
+                      }}
+                    />
+                    <div className="absolute top-2 right-2 bg-white/80 px-2 py-1 rounded text-sm">
+                      图片URL: {generatedImage.length > 50 ? generatedImage.substring(0, 50) + '...' : generatedImage}
+                    </div>
+                  </div>
                 </div>
                 <div className="md:w-1/2 flex flex-col justify-center">
                   <h3 className="text-lg font-medium text-gray-800 mb-4">提示词</h3>
