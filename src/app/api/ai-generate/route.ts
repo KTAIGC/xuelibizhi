@@ -141,26 +141,10 @@ export async function POST(request: NextRequest) {
         
         // 基于描述生成图像URL
         // 使用不需要API密钥的公共图片生成服务
-        let finalImageUrl = `https://picsum.photos/1080/1920`;
+        // 直接使用 Unsplash 随机图片服务，不需要验证
+        const finalImageUrl = `https://source.unsplash.com/random/1080x1920/?${encodeURIComponent(prompt)}`;
         
         console.log('生成的图片URL:', finalImageUrl);
-        
-        // 验证图片URL是否可访问
-        try {
-          const imageResponse = await fetch(finalImageUrl, { method: 'HEAD' });
-          console.log('图片URL验证状态:', imageResponse.status);
-          if (!imageResponse.ok) {
-            console.warn('图片URL可能无法访问:', finalImageUrl);
-            // 如果第一个服务失败，使用备用服务
-            finalImageUrl = `https://source.unsplash.com/random/1080x1920`;
-            console.log('使用备用图片URL:', finalImageUrl);
-          }
-        } catch (error) {
-          console.warn('验证图片URL时出错:', error);
-          // 如果出错，使用备用服务
-          finalImageUrl = `https://source.unsplash.com/random/1080x1920`;
-          console.log('使用备用图片URL:', finalImageUrl);
-        }
         
         console.log('最终图片URL:', finalImageUrl);
         
