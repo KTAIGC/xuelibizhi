@@ -140,24 +140,31 @@ export async function POST(request: NextRequest) {
         console.log('Gemini生成的描述:', description);
         
         // 基于描述生成图像URL
-        const imageUrl = `https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(description)}&image_size=portrait_4_3`;
+        // 使用不需要API密钥的公共图片生成服务
+        let finalImageUrl = `https://source.unsplash.com/random/1080x1920/?${encodeURIComponent(description)}`;
         
-        console.log('生成的图片URL:', imageUrl);
+        console.log('生成的图片URL:', finalImageUrl);
         
         // 验证图片URL是否可访问
         try {
-          const imageResponse = await fetch(imageUrl, { method: 'HEAD' });
+          const imageResponse = await fetch(finalImageUrl, { method: 'HEAD' });
           console.log('图片URL验证状态:', imageResponse.status);
           if (!imageResponse.ok) {
-            console.warn('图片URL可能无法访问:', imageUrl);
+            console.warn('图片URL可能无法访问:', finalImageUrl);
+            // 如果第一个服务失败，使用备用服务
+            finalImageUrl = `https://picsum.photos/1080/1920`;
+            console.log('使用备用图片URL:', finalImageUrl);
           }
         } catch (error) {
           console.warn('验证图片URL时出错:', error);
+          // 如果出错，使用备用服务
+          finalImageUrl = `https://picsum.photos/1080/1920`;
+          console.log('使用备用图片URL:', finalImageUrl);
         }
         
         return NextResponse.json({
           status: 'success',
-          imageUrl: imageUrl
+          imageUrl: finalImageUrl
         });
       } else {
         throw new Error('API响应结构不符合预期');
