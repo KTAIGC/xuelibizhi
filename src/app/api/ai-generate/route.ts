@@ -113,15 +113,18 @@ export async function POST(request: NextRequest) {
       if (data.candidates && data.candidates[0]) {
         // 提取文本部分，处理不同的响应结构
         let description = prompt;
+        let imageUrl = null;
         
         // 检查content是否存在
         if (data.candidates[0].content) {
-          // 尝试从parts中获取文本
+          // 尝试从parts中获取文本和图片
           if (data.candidates[0].content.parts) {
             for (const part of data.candidates[0].content.parts) {
               if (part.text) {
                 description = part.text;
-                break;
+              } else if (part.image) {
+                // 检查是否有生成的图片
+                imageUrl = part.image.url;
               }
             }
           } 
@@ -138,19 +141,25 @@ export async function POST(request: NextRequest) {
         }
         
         console.log('Gemini生成的描述:', description);
+        console.log('API返回的图片URL:', imageUrl);
         
-        // 基于描述生成图像URL
-        // 使用Unsplash的搜索功能，根据提示词生成相关图片
-        const finalImageUrl = `https://source.unsplash.com/random/1080x1920/?${encodeURIComponent(prompt)}`;
-        
-        console.log('生成的图片URL:', finalImageUrl);
-        
-        console.log('最终图片URL:', finalImageUrl);
-        
-        return NextResponse.json({
-          status: 'success',
-          imageUrl: finalImageUrl
-        });
+        // 如果API返回了图片URL，直接使用它
+        if (imageUrl) {
+          console.log('使用API生成的图片URL:', imageUrl);
+          return NextResponse.json({
+            status: 'success',
+            imageUrl: imageUrl
+          });
+        } else {
+          // 如果API没有返回图片URL，使用基于描述的图片生成
+          console.warn('API没有返回图片URL，使用基于描述的图片生成');
+          const finalImageUrl = `https://source.unsplash.com/random/1080x1920/?${encodeURIComponent(prompt)}`;
+          console.log('生成的图片URL:', finalImageUrl);
+          return NextResponse.json({
+            status: 'success',
+            imageUrl: finalImageUrl
+          });
+        }
       } else {
         throw new Error('API响应结构不符合预期');
       }
