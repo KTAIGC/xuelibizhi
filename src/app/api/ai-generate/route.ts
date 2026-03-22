@@ -49,14 +49,14 @@ export async function POST(request: NextRequest) {
         {
           parts: [
             {
-              text: `描述一张高清壁纸，提示词：${prompt}，风格：${style}，尺寸：${size.width}x${size.height}。请提供详细的描述，以便用于生成图像。`
+              text: `生成一张高清壁纸，提示词：${prompt}，风格：${style}，尺寸：${size.width}x${size.height}。请直接生成图像，不要只返回描述。`
             }
           ]
         }
       ],
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 1024
+        maxOutputTokens: 2048
       }
     });
 
@@ -183,15 +183,12 @@ export async function POST(request: NextRequest) {
             imageUrl: imageUrl
           });
         } else {
-          // 如果API没有返回图片URL，使用基于描述的图片生成
-          console.warn('API没有返回图片URL，使用备用方案');
-          // 使用Picsum作为备用，因为Unsplash可能无法访问
-          const finalImageUrl = 'https://picsum.photos/1080/1920';
-          console.log('使用备用图片URL:', finalImageUrl);
+          // 如果API没有返回图片URL，返回错误
+          console.error('API没有返回图片数据');
           return NextResponse.json({
-            status: 'success',
-            imageUrl: finalImageUrl
-          });
+            error: 'API未返回图片，请确保使用的是支持图片生成的模型',
+            status: 'error'
+          }, { status: 404 });
         }
       } else {
         throw new Error('API响应结构不符合预期');
